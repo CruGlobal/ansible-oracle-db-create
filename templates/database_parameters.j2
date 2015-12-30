@@ -1,0 +1,9 @@
+ALTER SYSTEM RESET MEMORY_TARGET SCOPE=SPFILE;
+ALTER SYSTEM RESET MEMORY_MAX_TARGET SCOPE=SPFILE;
+alter system set sga_target={{ item.item.value.sga_target }} scope=spfile sid='{{ item.item.key }}';
+alter system set pga_aggregate_target={{ item.item.value.pga_aggregate_target }} scope=spfile sid='{{ item.item.key }}';
+
+alter system set db_recovery_file_dest_size={{ item.item.value.db_recovery_file_dest_size }} scope=both;
+
+shutdown immediate;
+startup;

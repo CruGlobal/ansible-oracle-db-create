@@ -1,0 +1,32 @@
+---
+
+# oracle_dbca_rsp: "dbca_{{ item.key }}.rsp"        # Name of responsefile used by dbca. One per database
+#
+oracle_dbf_dir_fs: "{{ oracle_base }}/oradata"                                 # If storage_type=FS this is where the database is placed.
+oracle_reco_dir_fs: "{{ oracle_base }}/flash_recovery_area"                                    # If storage_type=FS this is where the fast recovery area is placed.
+oracle_dbf_dir_asm: "DATA1"                                        # If storage_type=ASM this is where the database is placed.
+oracle_reco_dir_asm: "FRA"                                        # If storage_type=ASM this is where the fast recovery area is placed
+# configure_cluster: false
+# oracle_install_option_gi: "none"
+# oracle_gi_cluster_type: STANDARD
+# hostgroup_hub: "{{ hostgroup }}-hub"
+# hostgroup_leaf: "{{ hostgroup }}-leaf"
+
+oracle_stage: "{{ oracle_stage_base }}/dbcreate"
+
+database_parameters:
+  orcl:
+    db_version: 12.1.0.2
+    sga_target: 1G
+    pga_aggregate_target: 1G
+    redolog_size_mb: 75
+    db_recovery_file_dest_size: 10G
+    log_mode: noarchivelog
+
+  test:
+    db_version: 11.2.0.4
+    sga_target: 1G
+    pga_aggregate_target: 1G
+    redolog_size_mb: 75
+    db_recovery_file_dest_size: 10G
+    log_mode: archivelog
