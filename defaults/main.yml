@@ -12,6 +12,7 @@ oracle_reco_dir_asm: "FRA"                                        # If storage_t
 # hostgroup_hub: "{{ hostgroup }}-hub"
 # hostgroup_leaf: "{{ hostgroup }}-leaf"
 
+oracle_stage_base: /home/oracle/ansible_stage
 oracle_stage: "{{ oracle_stage_base }}/dbcreate"
 
 database_parameters:
