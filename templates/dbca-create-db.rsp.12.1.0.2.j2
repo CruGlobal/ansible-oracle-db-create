@@ -86,7 +86,7 @@ GDBNAME = "{{ item.item.key }}"
 # Default value : SI
 # Mandatory     : No
 #-----------------------------------------------------------------------------
-DATABASECONFTYPE  = "{{ 'RAC' if rac else 'SI' }}"
+DATABASECONFTYPE  = "{{ oracle_install_type | upper }}"
 
 #-----------------------------------------------------------------------------
 # Name          : RACONENODESERVICENAME
@@ -253,6 +253,7 @@ SID = "{{ item.item.key }}"
 # Default value : None
 # Mandatory     : No (Yes for RAC database-centric database )
 #-----------------------------------------------------------------------------
+{#
 {% if configure_cluster==True %}
 {% if oracle_gi_cluster_type |upper == 'FLEX' %}
 NODELIST={% for host in groups[hostgroup_hub] -%} {{host}} {%- if not loop.last -%} , {%- endif -%} {%- endfor %}
@@ -261,6 +262,7 @@ NODELIST={% for host in groups[hostgroup] -%} {{host}} {%- if not loop.last -%} 
 {% endif %}
 {% else %}
 {% endif %}
+#}
 
 #-----------------------------------------------------------------------------
 # Name          : TEMPLATENAME
