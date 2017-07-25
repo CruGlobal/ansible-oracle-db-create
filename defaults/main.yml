@@ -1,5 +1,11 @@
 ---
 
+oracle_user: oracle                        # User that will own the Oracle Installations.
+oracle_user_home: "/home/{{ oracle_user }}" # Home directory for oracle_user. Needed for passing in ssh-keys, profiles etc
+oracle_group: oinstall                          # Primary group for oracle_user.
+oper_group: oper
+dba_group: dba                          # Primary group for oracle_user.
+
 db_storage_type: FS    # Valid values  : FS or ASM
 
 oracle_dbf_dir_fs: "{{ oracle_base }}/oradata"                                 # If storage_type=FS this is where the database is placed.
@@ -10,7 +16,19 @@ oracle_reco_dir_asm: "FRA"                                        # If storage_t
 oracle_stage_base: /home/oracle/ansible_stage
 oracle_stage: "{{ oracle_stage_base }}/dbcreate"
 
+oracle_base: /app/oracle   #Oracle Base for installations
+oracle_home: "{{ oracle_base }}/{{ oracle_version }}/dbhome_1"
+tns_admin: "{{ oracle_home }}/network/admin"
+
 database_parameters:
+  foo:
+    db_version: 12.2.0.1
+    sga_target: 1G
+    pga_aggregate_target: 1G
+    redolog_size_mb: 75
+    db_recovery_file_dest_size: 10G
+    log_mode: noarchivelog
+
   orcl:
     db_version: 12.1.0.2
     sga_target: 1G
@@ -28,6 +46,9 @@ database_parameters:
     log_mode: archivelog
 
 database_passwords:
+  foo:
+    sys: oracle4U!
+    system: oracle4U!
   orcl:
     sys: oracle4U!
     system: oracle4u!
@@ -37,3 +58,9 @@ database_passwords:
 
 dbsnmp_password: oracle4u!
 asmsnmp_password: oracle4u!
+
+env:
+  ORACLE_HOME: "{{ oracle_home }}"
+  ORACLE_BASE: "{{ oracle_base }}"
+  TNS_ADMIN: "{{ tns_admin }}"
+  PATH: "{{ oracle_home }}/bin:{{ oracle_home }}/OPatch:$PATH:/bin:/usr/bin::/usr/ccs/bin"
