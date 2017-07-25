@@ -10,104 +10,92 @@
 
 - name: Check if database is already created
   shell: grep {{ item.key }}:{{ oracle_home }} /etc/oratab |wc -l
-  with_dict: database_parameters
+  with_dict: "{{ database_parameters }}"
   register: dbexists
   when: oracle_version == item.value.db_version
 
-#debug shows how to determine if database exists.
-#dbca response file created from dbexists.
-# - debug: msg="database {{ item.item.key }} {{ 'does not exist' if item.stdout == '0' else 'does exist' }}"
-#   with_items: dbexists.results
-# db name: dbexists.results[x].item.key
-# exists:  dbexists.results[x].stdout
+- block:
+  - name: Create responsefile for dbca
+    template:
+      src: "dbca-create-db.rsp.{{ item.item.value.db_version }}.j2"
+      dest: "{{ oracle_stage }}/dbca_cre_{{ item.item.key }}.rsp"
+      owner: "{{ oracle_user }}"
+      group: "{{ oracle_group }}"
+      mode: 0644
+      backup: no
+    with_items: "{{ dbexists.results }}"
 
-- debug: msg="db {{ item.item.key }} exists"
-  with_items: dbexists.results
+  - name: Create database(s)
+    shell: "dbca -silent -createDatabase -responseFile {{ oracle_stage }}/dbca_cre_{{ item.item.key }}.rsp -redoLogFileSize {{ item.item.value.redolog_size_mb }} "
+    environment: "{{ env }}"
+    with_items: "{{ dbexists.results }}"
+    register: oradbcreate
+
+  - name: Template database_parameters_<sid>.sql script
+    template:
+      src: database_parameters.j2
+      dest: "{{ oracle_stage }}/database_parameters_{{ item.item.key }}.sql"
+      owner: "{{ oracle_user }}"
+      group: "{{ oracle_group }}"
+      mode: 0644
+    with_items: "{{ dbexists.results }}"
+
+  - name: Run database_parameters_<sid>.sql
+    shell: echo exit | sqlplus / as sysdba @database_parameters_{{ item.item.key }}.sql
+    with_items: "{{ dbexists.results }}"
+    environment:
+        ORACLE_HOME: "{{ oracle_home }}"
+        ORACLE_BASE: "{{ oracle_base }}"
+        ORACLE_SID: "{{ item.item.key }}"
+        TNS_ADMIN: "{{ tns_admin }}"
+        PATH: "{{ oracle_home }}/bin:{{ oracle_home }}/OPatch:$PATH:/bin:/usr/bin::/usr/ccs/bin"
+    args:
+      chdir: "{{ oracle_stage}}"
+
   when: "{{ item.stdout | default(1) }} == 0"
-
-- name: Create responsefile for dbca
-  template:
-    src: "dbca-create-db.rsp.{{ item.item.value.db_version }}.j2"
-    dest: "{{ oracle_stage }}/dbca_cre_{{ item.item.key }}.rsp"
-    owner: "{{ oracle_user }}"
-    group: "{{ oracle_group }}"
-    mode: 0644
-    backup: no
-  with_items: dbexists.results
-  when: "{{ item.stdout | default(1) }} == 0"
-
-- name: Create database(s)
-  shell: "time {{ oracle_home }}/bin/dbca -responseFile {{ oracle_stage }}/dbca_cre_{{ item.item.key }}.rsp -silent -redoLogFileSize {{ item.item.value.redolog_size_mb }} "
-  with_items: dbexists.results
-  when: "{{ item.stdout | default(1) }} == 0"
-  sudo: yes
-  sudo_user: "{{ oracle_user }}"
-  register: oradbcreate
-
-- debug: var=oradbcreate.stdout_lines
-  with_items: oradbcreate.results
-  when: oradbcreate.changed
-
-#  - name: Add default services to databases
-#    shell: "{{ oracle_home }}/bin/srvctl add service -db {{ item.value.oracle_database }}
-#    with_dict: oracle_databases
-#    when: master_node and oracle_install_option_gi == 'HA_CONFIG'
-#    tags:
-#      - oradbcreate
-#    register: oradbcreate
-
-#  - name: Check if database is registered
-#    shell: "{{ oracle_home }}/bin/srvctl config database "
-#    when: oracle_install_option_gi == 'CRS_CONFIG' or oracle_install_option_gi == 'HA_CONFIG'
-#    tags:
-#      - srvctlconfig
-#    register: srvctlconfig
-
-
-#  - debug: var=srvctlconfig.stdout_lines
-#    when: oracle_install_option_gi == 'CRS_CONFIG' or oracle_install_option_gi == 'HA_CONFIG'
-#    tags:
-#     - srvctlconfig
-
-- name: Template database_parameters_<sid>.sql script
-  template:
-    src: database_parameters.j2
-    dest: "{{ oracle_stage }}/database_parameters_{{ item.item.key }}.sql"
-    owner: "{{ oracle_user }}"
-    group: "{{ oracle_group }}"
-    mode: 0644
-  with_items: dbexists.results
-  when: "{{ item.stdout | default(1) }} == 0"
-
-- name: Run database_parameters_<sid>.sql on all databases
-  shell: export ORACLE_SID={{ item.item.key }}; echo exit | sqlplus / as sysdba @database_parameters_{{ item.item.key }}.sql
-  sudo: yes
-  sudo_user: oracle
-  with_items: dbexists.results
-  args:
-    chdir: "{{ oracle_stage}}"
-  environment: env
-  when: "{{ item.stdout | default(1) }} == 0"
-
-# - name: Get running database sid
-#   shell:  ps -ef | grep "ora_pmon_{{ item.key }}" |grep -v grep | sed 's/^.*pmon_//g'
-#   with_dict: database_parameters
-#   register: dbs
-#
-# - name: Add dotprofile (2)
-#   template: src=dotprofile-db.j2 dest={{ oracle_user_home }}/.profile_{{ item.0.oracle_db_name }} owner={{ oracle_user }} group={{ oracle_group }} mode=775 backup=yes
-#   with_together:
-#   - oracle_databases
-#   - dbs.results
-#   tags: dotprofile_db
-
-# - name: Update oratab
-#   lineinfile: dest=/etc/oratab line="{{ item.stdout }}:{{ oracle_home_db }}:N" state=present
-#   with_items: dbs.results
+  become: yes
+  become_user: "{{ oracle_user }}"
 
 - name: Check if database is running
-  shell: ps -ef |grep pmon |grep -v grep
+  shell: ps -ef |grep pmo[n]
   register: psout
-  ignore_errors: true
 
 - debug: var=psout.stdout_lines
+
+  # - name: Get running database sid
+  #   shell:  ps -ef | grep "ora_pmon_{{ item.key }}" |grep -v grep | sed 's/^.*pmon_//g'
+  #   with_dict: database_parameters
+  #   register: dbs
+  #
+  # - name: Add dotprofile (2)
+  #   template: src=dotprofile-db.j2 dest={{ oracle_user_home }}/.profile_{{ item.0.oracle_db_name }} owner={{ oracle_user }} group={{ oracle_group }} mode=775 backup=yes
+  #   with_together:
+  #   - oracle_databases
+  #   - dbs.results
+  #   tags: dotprofile_db
+
+  # - name: Update oratab
+  #   lineinfile: dest=/etc/oratab line="{{ item.stdout }}:{{ oracle_home_db }}:N" state=present
+  #   with_items: dbs.results
+
+
+  #  - name: Add default services to databases
+  #    shell: "{{ oracle_home }}/bin/srvctl add service -db {{ item.value.oracle_database }}
+  #    with_dict: oracle_databases
+  #    when: master_node and oracle_install_option_gi == 'HA_CONFIG'
+  #    tags:
+  #      - oradbcreate
+  #    register: oradbcreate
+
+  #  - name: Check if database is registered
+  #    shell: "{{ oracle_home }}/bin/srvctl config database "
+  #    when: oracle_install_option_gi == 'CRS_CONFIG' or oracle_install_option_gi == 'HA_CONFIG'
+  #    tags:
+  #      - srvctlconfig
+  #    register: srvctlconfig
+
+
+  #  - debug: var=srvctlconfig.stdout_lines
+  #    when: oracle_install_option_gi == 'CRS_CONFIG' or oracle_install_option_gi == 'HA_CONFIG'
+  #    tags:
+  #     - srvctlconfig
