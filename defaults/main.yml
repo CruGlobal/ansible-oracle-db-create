@@ -28,6 +28,10 @@ database_parameters:
     redolog_size_mb: 75
     db_recovery_file_dest_size: 10G
     log_mode: noarchivelog
+    cdb: true
+    pdb_count: 1
+    pdb_name: cdb1
+    pdb_admin_password: oracle4U!
 
   orcl:
     db_version: 12.1.0.2

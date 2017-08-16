@@ -30,7 +30,7 @@ responseFileVersion=/oracle/assistants/rspfmt_dbca_response_schema_v12.2.0
 # Default value : None
 # Mandatory     : Yes
 #-----------------------------------------------------------------------------
-gdbName={{ item.item.key }}
+gdbName={{ item.item.key }}.ccci.org
 
 #-----------------------------------------------------------------------------
 # Name          : sid
@@ -160,7 +160,7 @@ pqCardinality=
 # Default value : false
 # Mandatory     : No
 #-----------------------------------------------------------------------------
-createAsContainerDatabase=false
+createAsContainerDatabase={{ item.item.value.cdb }}
 
 #-----------------------------------------------------------------------------
 # Name          : numberOfPDBs
@@ -170,7 +170,7 @@ createAsContainerDatabase=false
 # Default value : 0
 # Mandatory     : No
 #-----------------------------------------------------------------------------
-numberOfPDBs=0
+numberOfPDBs={{ item.item.value.pdb_count }}
 
 #-----------------------------------------------------------------------------
 # Name          : pdbName
@@ -180,7 +180,7 @@ numberOfPDBs=0
 # Default value : None
 # Mandatory     : No
 #-----------------------------------------------------------------------------
-pdbName=
+pdbName={{ item.item.value.pdb_name }}
 
 #-----------------------------------------------------------------------------
 # Name          : useLocalUndoForPDBs
@@ -201,7 +201,7 @@ useLocalUndoForPDBs=true
 # Mandatory     : No
 #-----------------------------------------------------------------------------
 
-pdbAdminPassword=
+pdbAdminPassword={{ item.item.value.pdb_admin_password }}
 
 #-----------------------------------------------------------------------------
 # Name          : nodelist
