@@ -7,3 +7,7 @@ alter system set db_recovery_file_dest_size={{ item.item.value.db_recovery_file_
 
 shutdown immediate;
 startup;
+{% if oracle_version == '12.2.0.1' %}
+alter pluggable database all open;
+alter pluggable database all save state;
+{% endif %}

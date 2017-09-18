@@ -31,6 +31,12 @@
     with_items: "{{ dbexists.results }}"
     register: oradbcreate
 
+  - name: Startup pluggable databases
+    shell: export ORACLE_SID={{ item }}; echo "alter pluggable database all open;" | sqlplus / as sysdba
+    environment: "{{ env }}"
+    with_items: "{{ dbexists.results }}"
+    when: oracle_version == '12.2.0.1'
+
   - name: Template database_parameters_<sid>.sql script
     template:
       src: database_parameters.j2
@@ -55,6 +61,12 @@
   when: "{{ item.stdout | default(1) }} == 0"
   become: yes
   become_user: "{{ oracle_user }}"
+
+- name: Start Listener
+  shell: "lsnrctl start listener"
+  environment: "{{ env }}"
+  become_user: oracle
+  ignore_errors: true
 
 - name: Check if database is running
   shell: ps -ef |grep pmo[n]
